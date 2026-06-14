@@ -133,17 +133,29 @@ try {
     const dayOfWeek = weekStart.getDay();
     weekStart.setDate(weekStart.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
 
+    // The schedule AJAX returns ~4 days from the requested date, not a full 7.
+    // Scan twice per week: Monday (covers Mon–Thu) and Thursday (covers Thu–Sun).
     let weekNumber = 0;
     while (weekStart <= rangeEnd) {
         weekNumber++;
-        log.info(`Scanning week ${weekNumber}`, { weekOf: weekStart.toISOString().slice(0, 10) });
+        const thursday = new Date(weekStart);
+        thursday.setDate(thursday.getDate() + 3);
+
+        log.info(`Scanning week ${weekNumber} — first half`, { from: weekStart.toISOString().slice(0, 10) });
         await navigateToWeek(page, weekStart);
         await findAndBookClasses(page, base, dryRun, results, exportAllClasses);
+        await sleep(800);
+
+        if (thursday <= rangeEnd) {
+            log.info(`Scanning week ${weekNumber} — second half`, { from: thursday.toISOString().slice(0, 10) });
+            await navigateToWeek(page, thursday);
+            await findAndBookClasses(page, base, dryRun, results, exportAllClasses);
+            await sleep(800);
+        }
 
         // Advance to next Monday
         weekStart = new Date(weekStart);
         weekStart.setDate(weekStart.getDate() + 7);
-        await sleep(1000);
     }
 
     log.info(`Finished scanning ${weekNumber} week(s)`);
