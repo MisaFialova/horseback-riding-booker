@@ -14,6 +14,8 @@ Actor.on('aborting', async () => {
 
 const input = await Actor.getInput();
 const {
+    username,
+    password,
     cookies = [],
     targetDays = [],
     targetTimeFrom = '00:00',
@@ -27,8 +29,8 @@ const {
     dryRun = false,
 } = input ?? {};
 
-if (!cookies.length) {
-    await Actor.fail('Missing required input: cookies must be a non-empty array. Export them from Chrome after logging in via Google.');
+if (!username || !password) {
+    await Actor.fail('Missing required input: username and password are required for automatic re-login.');
 }
 if (!targetDays.length) {
     await Actor.fail('Missing required input: targetDays must have at least one entry.');
@@ -116,10 +118,11 @@ try {
     await page.goto(base, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await sleep(2000);
 
-    // Verify we're logged in (if login form is still showing, cookies have expired)
-    const loginError = await page.$('.textWrapper a[href*="login"], .showAfterLogin');
-    if (loginError) {
-        log.warning('Login form still visible after injecting cookies — session may have expired. Re-export cookies from Chrome and update INPUT.json.');
+    // Check if logged in — if not, fall back to username/password login
+    const isLoggedIn = !(await page.$('.showAfterLogin, a.userLoginSubmit'));
+    if (!isLoggedIn) {
+        log.info('Session cookies expired — logging in with username/password...');
+        await loginWithCredentials(page, base, username, password);
     } else {
         log.info('Logged in successfully via cookies');
     }
@@ -169,6 +172,33 @@ log.info('Done', { totalBooked: results.filter((r) => r.booked).length, totalFou
 await Actor.exit();
 
 // ---------------------------------------------------------------------------
+
+async function loginWithCredentials(page, base, user, pass) {
+    // Ensure the login panel is visible
+    await page.evaluate(() => {
+        const panel = document.querySelector('#panel');
+        if (panel) panel.style.display = 'block';
+    });
+
+    await page.fill('input[name="username"]', user);
+    await sleep(200);
+    await page.fill('input[name="password"]', pass);
+    await sleep(200);
+
+    await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {}),
+        page.press('input[name="password"]', 'Enter'),
+    ]);
+    await sleep(2000);
+
+    // Verify login succeeded
+    const loginError = await page.$('.loginError:not(:empty)').catch(() => null);
+    if (loginError) {
+        const msg = await loginError.textContent().catch(() => '');
+        throw new Error(`Login failed: ${msg || 'check your username and password'}`);
+    }
+    log.info('Logged in successfully via username/password');
+}
 
 async function navigateToWeek(page, monday) {
     const d = monday.getDate();

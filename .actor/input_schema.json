@@ -3,11 +3,25 @@
     "type": "object",
     "schemaVersion": 1,
     "properties": {
+        "username": {
+            "title": "Username / Email",
+            "type": "string",
+            "description": "Your login email for jezdeckyklub-elite.isportsystem.cz. The Actor will use this to automatically re-login when the session expires.",
+            "editor": "textfield"
+        },
+        "password": {
+            "title": "Password",
+            "type": "string",
+            "description": "Your iSportSystem password. Stored securely and never shown in logs.",
+            "editor": "textfield",
+            "isSecret": true
+        },
         "cookies": {
-            "title": "Session Cookies (JSON)",
+            "title": "Session Cookies (JSON — optional)",
             "type": "array",
-            "description": "Your session cookies exported from Chrome after logging in via Google. Use the 'Cookie-Editor' extension → Export → JSON. Paste the full JSON array here.",
-            "editor": "json"
+            "description": "Optional. If provided, the Actor uses these cookies first and only falls back to username/password if they expire. Export from Chrome using 'Cookie-Editor' → Export → JSON.",
+            "editor": "json",
+            "default": []
         },
         "targetDays": {
             "title": "Days to book",
@@ -86,5 +100,5 @@
             "default": false
         }
     },
-    "required": ["cookies", "targetDays", "targetTimeFrom", "targetTimeTo", "bookFromDate", "bookUntilDate"]
+    "required": ["username", "password", "targetDays", "targetTimeFrom", "targetTimeTo", "bookFromDate", "bookUntilDate"]
 }
