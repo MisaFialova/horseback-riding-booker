@@ -30,7 +30,7 @@
         "instructors": {
             "title": "Instructors (optional)",
             "type": "array",
-            "description": "Only book classes with these instructors. Leave empty to accept any. Available: Anna Hrubošová, Kateřina Krajcarová, Kateřina Opelková, Lenka Šlaufová, Lucie Březíková, Lucie Šenkýřová, Sabina Poislová.",
+            "description": "Only book classes with these instructors. Leave empty to accept any.\n\nAvailable instructors:\n• Anna Hrubošová\n• Kateřina Krajcarová\n• Kateřina Opelková\n• Lenka Šlaufová\n• Lucie Březíková\n• Lucie Šenkýřová\n• Sabina Poislová",
             "editor": "stringList",
             "default": [],
             "items": { "type": "string" }
@@ -38,7 +38,7 @@
         "classTypes": {
             "title": "Class types (optional)",
             "type": "array",
-            "description": "Only book these class types. Leave empty to accept any. Available: Individuální lekce, Individuální lekce 2 jezdci, Individuální lekce začátečník, Individuální skoková lekce 2 jezdci, Skupinová lekce, Skupinová lekce – děti začátečníci, Stájník.",
+            "description": "Only book these class types. Leave empty to accept any.\n\nAvailable class types:\n• Individuální lekce\n• Individuální lekce 2 jezdci\n• Individuální lekce začátečník\n• Individuální skoková lekce 2 jezdci\n• Praxe SZŠ\n• Praxe SZŠ 2.B\n• Skupinová lekce\n• Skupinová lekce – děti začátečníci\n• Stájník",
             "editor": "stringList",
             "default": [],
             "items": { "type": "string" }
