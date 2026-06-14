@@ -16,7 +16,8 @@ const input = await Actor.getInput();
 const {
     cookies = [],
     targetDays = [],
-    targetTimes = [],
+    targetTimeFrom = '00:00',
+    targetTimeTo = '23:59',
     instructors = [],
     classTypes = [],
     bookFromDate,
@@ -29,8 +30,8 @@ const {
 if (!cookies.length) {
     await Actor.fail('Missing required input: cookies must be a non-empty array. Export them from Chrome after logging in via Google.');
 }
-if (!targetDays.length || !targetTimes.length) {
-    await Actor.fail('Missing required input: targetDays and targetTimes must each have at least one entry.');
+if (!targetDays.length) {
+    await Actor.fail('Missing required input: targetDays must have at least one entry.');
 }
 if (!bookFromDate || !bookUntilDate) {
     await Actor.fail('Missing required input: bookFromDate and bookUntilDate are required (format: YYYY-MM-DD).');
@@ -41,7 +42,7 @@ const rangeEnd = new Date(bookUntilDate);
 rangeEnd.setHours(23, 59, 59, 999);
 
 log.info('Starting horseback riding class booker', {
-    targetDays, targetTimes, instructors, classTypes,
+    targetDays, targetTimeFrom, targetTimeTo, instructors, classTypes,
     bookFromDate, bookUntilDate, dryRun, cookieCount: cookies.length,
 });
 
@@ -64,9 +65,15 @@ function normalizeDay(day) {
     return lower;
 }
 
+function toMinutes(hhmm) {
+    const [h, m] = (hhmm ?? '0:0').split(':').map(Number);
+    return h * 60 + (m || 0);
+}
+
 function isTargetClass(dayText, timeText, classTypeText, instructorText) {
     const dayMatch = targetDays.some((d) => normalizeDay(d) === normalizeDay(dayText));
-    const timeMatch = targetTimes.some((t) => timeText?.trim().startsWith(t.trim()));
+    const slotMinutes = toMinutes(timeText?.trim().split('–')[0]);
+    const timeMatch = slotMinutes >= toMinutes(targetTimeFrom) && slotMinutes <= toMinutes(targetTimeTo);
     const classTypeMatch = !classTypes.length
         || classTypes.some((c) => classTypeText?.toLowerCase().includes(c.toLowerCase()));
     const instructorMatch = !instructors.length

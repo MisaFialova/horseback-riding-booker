@@ -18,14 +18,21 @@
             "prefill": ["Monday", "Wednesday"],
             "items": { "type": "string" }
         },
-        "targetTimes": {
-            "title": "Times to book",
-            "type": "array",
-            "description": "Start times to monitor in HH:MM format, e.g. 18:00. Add each time slot you want to book.",
-            "editor": "stringList",
-            "default": ["18:00"],
-            "prefill": ["18:00"],
-            "items": { "type": "string" }
+        "targetTimeFrom": {
+            "title": "Book classes from (time)",
+            "type": "string",
+            "description": "Only book classes starting at or after this time. Use HH:MM format, e.g. 16:00 for 4 PM. Works with half-hour slots too — a class at 16:30 will match a range of 16:00–20:00.",
+            "editor": "textfield",
+            "default": "16:00",
+            "prefill": "16:00"
+        },
+        "targetTimeTo": {
+            "title": "Book classes until (time)",
+            "type": "string",
+            "description": "Only book classes starting at or before this time. Use HH:MM format, e.g. 20:00 for 8 PM.",
+            "editor": "textfield",
+            "default": "20:00",
+            "prefill": "20:00"
         },
         "instructors": {
             "title": "Instructors (optional)",
@@ -79,5 +86,5 @@
             "default": false
         }
     },
-    "required": ["cookies", "targetDays", "targetTimes", "bookFromDate", "bookUntilDate"]
+    "required": ["cookies", "targetDays", "targetTimeFrom", "targetTimeTo", "bookFromDate", "bookUntilDate"]
 }
