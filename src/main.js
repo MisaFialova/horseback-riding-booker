@@ -138,17 +138,17 @@ try {
     let weekNumber = 0;
     while (weekStart <= rangeEnd) {
         weekNumber++;
-        const thursday = new Date(weekStart);
-        thursday.setDate(thursday.getDate() + 3);
+        const friday = new Date(weekStart);
+        friday.setDate(friday.getDate() + 4);
 
-        log.info(`Scanning week ${weekNumber} — first half`, { from: weekStart.toISOString().slice(0, 10) });
+        log.info(`Scanning week ${weekNumber} — Mon–Thu`, { from: weekStart.toISOString().slice(0, 10) });
         await navigateToWeek(page, weekStart);
         await findAndBookClasses(page, base, dryRun, results, exportAllClasses);
         await sleep(800);
 
-        if (thursday <= rangeEnd) {
-            log.info(`Scanning week ${weekNumber} — second half`, { from: thursday.toISOString().slice(0, 10) });
-            await navigateToWeek(page, thursday);
+        if (friday <= rangeEnd) {
+            log.info(`Scanning week ${weekNumber} — Fri–Sun`, { from: friday.toISOString().slice(0, 10) });
+            await navigateToWeek(page, friday);
             await findAndBookClasses(page, base, dryRun, results, exportAllClasses);
             await sleep(800);
         }
