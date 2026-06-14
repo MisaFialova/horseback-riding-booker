@@ -22,6 +22,7 @@ const {
     bookFromDate,
     bookUntilDate,
     bookingUrl = 'https://jezdeckyklub-elite.isportsystem.cz',
+    exportAllClasses = false,
     dryRun = false,
 } = input ?? {};
 
@@ -127,7 +128,7 @@ try {
         weekNumber++;
         log.info(`Scanning week ${weekNumber}`, { weekOf: weekStart.toISOString().slice(0, 10) });
         await navigateToWeek(page, weekStart);
-        await findAndBookClasses(page, base, dryRun, results);
+        await findAndBookClasses(page, base, dryRun, results, exportAllClasses);
 
         // Advance to next Monday
         weekStart = new Date(weekStart);
@@ -224,7 +225,7 @@ function normalizeSameSite(value) {
     return 'Lax';
 }
 
-async function findAndBookClasses(page, base, dry, results) {
+async function findAndBookClasses(page, base, dry, results, exportAll = false) {
     log.info('Scanning schedule for target classes...');
 
     // Wait for the AJAX schedule to finish loading
@@ -236,15 +237,15 @@ async function findAndBookClasses(page, base, dry, results) {
     const scheduleHtml = await page.content();
     await Actor.setValue('schedule_page_debug.html', scheduleHtml, { contentType: 'text/html' });
 
-    // Slots are <a class="tooltip slot [fullyBooked|waitingOnly]" rel="act|sportId|laneId|actId|startTs|endTs|price">
-    // Only target slots that are actually bookable (no fullyBooked, no waitingOnly)
-    const slots = await page.$$('a.slot:not(.fullyBooked):not(.waitingOnly)');
-    log.info(`Found ${slots.length} bookable slot(s) on current week view`);
+    // When exportAll is on, scan every slot including full/waitlist ones
+    const slotSelector = exportAll ? 'a.slot' : 'a.slot:not(.fullyBooked):not(.waitingOnly)';
+    const slots = await page.$$(slotSelector);
+    log.info(`Found ${slots.length} slot(s) on current week view`);
 
     for (const slot of slots) {
         const timeText = await slot.$eval('.time', (el) => el.textContent.trim()).catch(() => '');
         const rel = await slot.getAttribute('rel') ?? '';
-        const titleAttr = await slot.getAttribute('title') ?? '';
+        const slotClasses = await slot.getAttribute('class') ?? '';
 
         // rel format: "act|sportId|laneId|actId|startTimestamp|endTimestamp|price"
         const startTs = parseInt(rel.split('|')[4], 10);
@@ -259,7 +260,6 @@ async function findAndBookClasses(page, base, dry, results) {
             for (const item of doc.querySelectorAll('.tItem2')) {
                 const text = item.textContent.trim();
                 if (/\d+\.\d+\.\d+/.test(text)) {
-                    // "Pondělí 15.6.2026" — return the part before the date
                     return text.replace(/\s*\d+\.\d+\.\d+.*/, '').trim();
                 }
             }
@@ -271,16 +271,28 @@ async function findAndBookClasses(page, base, dry, results) {
         const startTime = timeText.split('–')[0].trim();
         const name = await slot.$eval('.name', (el) => el.textContent.trim()).catch(() => '');
         const instructor = await slot.$eval('.instructor', (el) => el.textContent.trim()).catch(() => '');
+        const date = slotDate?.toISOString().slice(0, 10) ?? '';
+        const availability = slotClasses.includes('fullyBooked') ? 'fullyBooked'
+            : slotClasses.includes('waitingOnly') ? 'waitingOnly'
+            : 'available';
 
-        log.debug('Slot', { day: dayOfWeek, time: startTime, name, instructor, date: slotDate?.toISOString().slice(0, 10) });
+        log.debug('Slot', { day: dayOfWeek, time: startTime, name, instructor, date, availability });
 
-        if (!isTargetClass(dayOfWeek, startTime, name, instructor)) continue;
-
-        // Only book slots within the configured date range
+        // Only export/book slots within the configured date range
         if (slotDate && (slotDate < rangeStart || slotDate > rangeEnd)) {
-            log.debug('Slot outside booking range — skipping', { day: dayOfWeek, time: startTime, slotDate: slotDate.toISOString().slice(0, 10) });
+            log.debug('Slot outside booking range — skipping', { date });
             continue;
         }
+
+        // Export all classes to dataset if requested
+        if (exportAll) {
+            await Actor.pushData({ date, day: dayOfWeek, time: startTime, name, instructor, availability });
+        }
+
+        // Skip non-bookable slots for the booking logic
+        if (availability !== 'available') continue;
+
+        if (!isTargetClass(dayOfWeek, startTime, name, instructor)) continue;
         log.info('Found target slot!', { day: dayOfWeek, time: startTime, name, instructor });
 
         if (dry) {

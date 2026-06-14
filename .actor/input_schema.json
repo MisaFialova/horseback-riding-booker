@@ -66,6 +66,12 @@
             "editor": "textfield",
             "default": "https://jezdeckyklub-elite.isportsystem.cz"
         },
+        "exportAllClasses": {
+            "title": "Export all available classes to dataset",
+            "type": "boolean",
+            "description": "When enabled, pushes every class found across the full date range to the dataset — including date, time, instructor, class type, and availability status. Useful for browsing what's on offer before setting up filters.",
+            "default": false
+        },
         "dryRun": {
             "title": "Dry run (no actual booking)",
             "type": "boolean",
