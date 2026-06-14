@@ -75,9 +75,9 @@ function isTargetClass(dayText, timeText, classTypeText, instructorText) {
     const slotMinutes = toMinutes(timeText?.trim().split('–')[0]);
     const timeMatch = slotMinutes >= toMinutes(targetTimeFrom) && slotMinutes <= toMinutes(targetTimeTo);
     const classTypeMatch = !classTypes.length
-        || classTypes.some((c) => classTypeText?.toLowerCase().includes(c.toLowerCase()));
+        || classTypes.some((c) => classTypeText?.toLowerCase().trim() === c.toLowerCase().trim());
     const instructorMatch = !instructors.length
-        || instructors.some((i) => instructorText?.toLowerCase().includes(i.toLowerCase()));
+        || instructors.some((i) => instructorText?.toLowerCase().trim() === i.toLowerCase().trim());
     return dayMatch && timeMatch && classTypeMatch && instructorMatch;
 }
 
