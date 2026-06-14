@@ -1,0 +1,48 @@
+{
+    "title": "Horseback Riding Class Booker",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "cookies": {
+            "title": "Session Cookies (JSON)",
+            "type": "array",
+            "description": "Your session cookies exported from Chrome after logging in via Google. Use the 'Cookie-Editor' extension → Export → JSON. Paste the full JSON array here.",
+            "editor": "json"
+        },
+        "targetClasses": {
+            "title": "Target Classes",
+            "type": "array",
+            "description": "Classes to automatically book. Each entry requires 'day' and 'time'. Optionally add 'classType' (partial match against class name, e.g. 'Skupinová') and/or 'instructor' (partial match, e.g. 'Březíková') to narrow down which slot to book. Leave them out to book the first available slot at that day/time.",
+            "editor": "json",
+            "default": [
+                { "day": "Monday", "time": "18:00", "classType": "", "instructor": "" },
+                { "day": "Wednesday", "time": "18:00", "classType": "", "instructor": "" }
+            ],
+            "prefill": [
+                { "day": "Monday", "time": "18:00", "classType": "", "instructor": "" },
+                { "day": "Wednesday", "time": "18:00", "classType": "", "instructor": "" }
+            ]
+        },
+        "bookingUrl": {
+            "title": "Booking Page URL",
+            "type": "string",
+            "description": "Direct URL to the class schedule/booking page (optional — leave empty to use the default).",
+            "editor": "textfield",
+            "default": "https://jezdeckyklub-elite.isportsystem.cz"
+        },
+        "minDaysAhead": {
+            "title": "Minimum days ahead",
+            "type": "integer",
+            "description": "Never book a class that starts sooner than this many days from now. Default is 3 — protects against accidentally booking something happening this week.",
+            "default": 3,
+            "minimum": 0
+        },
+        "dryRun": {
+            "title": "Dry Run (no actual booking)",
+            "type": "boolean",
+            "description": "If enabled, the Actor will check for available classes but NOT book them. Useful for testing.",
+            "default": false
+        }
+    },
+    "required": ["cookies", "targetClasses"]
+}
