@@ -15,7 +15,10 @@ Actor.on('aborting', async () => {
 const input = await Actor.getInput();
 const {
     cookies = [],
-    targetClasses = [],
+    targetDays = [],
+    targetTimes = [],
+    instructors = [],
+    classTypes = [],
     bookingUrl = 'https://jezdeckyklub-elite.isportsystem.cz',
     dryRun = false,
     minDaysAhead = 3,
@@ -24,11 +27,11 @@ const {
 if (!cookies.length) {
     await Actor.fail('Missing required input: cookies must be a non-empty array. Export them from Chrome after logging in via Google.');
 }
-if (!targetClasses.length) {
-    await Actor.fail('Missing required input: targetClasses must contain at least one entry.');
+if (!targetDays.length || !targetTimes.length) {
+    await Actor.fail('Missing required input: targetDays and targetTimes must each have at least one entry.');
 }
 
-log.info('Starting horseback riding class booker', { targetClasses, dryRun, bookingUrl, cookieCount: cookies.length });
+log.info('Starting horseback riding class booker', { targetDays, targetTimes, instructors, classTypes, dryRun, cookieCount: cookies.length });
 
 // Normalize day names — handles Czech and English
 const DAY_ALIASES = {
@@ -50,15 +53,13 @@ function normalizeDay(day) {
 }
 
 function isTargetClass(dayText, timeText, classTypeText, instructorText) {
-    return targetClasses.some((target) => {
-        const dayMatch = normalizeDay(dayText) === normalizeDay(target.day);
-        const timeMatch = timeText?.trim().startsWith(target.time?.trim());
-        const classTypeMatch = !target.classType
-            || classTypeText?.toLowerCase().includes(target.classType.toLowerCase());
-        const instructorMatch = !target.instructor
-            || instructorText?.toLowerCase().includes(target.instructor.toLowerCase());
-        return dayMatch && timeMatch && classTypeMatch && instructorMatch;
-    });
+    const dayMatch = targetDays.some((d) => normalizeDay(d) === normalizeDay(dayText));
+    const timeMatch = targetTimes.some((t) => timeText?.trim().startsWith(t.trim()));
+    const classTypeMatch = !classTypes.length
+        || classTypes.some((c) => classTypeText?.toLowerCase().includes(c.toLowerCase()));
+    const instructorMatch = !instructors.length
+        || instructors.some((i) => instructorText?.toLowerCase().includes(i.toLowerCase()));
+    return dayMatch && timeMatch && classTypeMatch && instructorMatch;
 }
 
 const base = bookingUrl.replace(/\/$/, '');
