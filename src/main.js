@@ -19,9 +19,10 @@ const {
     targetTimes = [],
     instructors = [],
     classTypes = [],
+    bookFromDate,
+    bookUntilDate,
     bookingUrl = 'https://jezdeckyklub-elite.isportsystem.cz',
     dryRun = false,
-    minDaysAhead = 3,
 } = input ?? {};
 
 if (!cookies.length) {
@@ -30,8 +31,18 @@ if (!cookies.length) {
 if (!targetDays.length || !targetTimes.length) {
     await Actor.fail('Missing required input: targetDays and targetTimes must each have at least one entry.');
 }
+if (!bookFromDate || !bookUntilDate) {
+    await Actor.fail('Missing required input: bookFromDate and bookUntilDate are required (format: YYYY-MM-DD).');
+}
 
-log.info('Starting horseback riding class booker', { targetDays, targetTimes, instructors, classTypes, dryRun, cookieCount: cookies.length });
+const rangeStart = new Date(bookFromDate);
+const rangeEnd = new Date(bookUntilDate);
+rangeEnd.setHours(23, 59, 59, 999);
+
+log.info('Starting horseback riding class booker', {
+    targetDays, targetTimes, instructors, classTypes,
+    bookFromDate, bookUntilDate, dryRun, cookieCount: cookies.length,
+});
 
 // Normalize day names — handles Czech and English
 const DAY_ALIASES = {
@@ -105,8 +116,26 @@ try {
         log.info('Logged in successfully via cookies');
     }
 
-    // Step 3 — find and (optionally) book classes
-    await findAndBookClasses(page, base, dryRun, results);
+    // Step 3 — iterate week by week through the booking range, book all matching slots
+    let weekStart = new Date(rangeStart);
+    // Snap to Monday of that week
+    const dayOfWeek = weekStart.getDay();
+    weekStart.setDate(weekStart.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+    let weekNumber = 0;
+    while (weekStart <= rangeEnd) {
+        weekNumber++;
+        log.info(`Scanning week ${weekNumber}`, { weekOf: weekStart.toISOString().slice(0, 10) });
+        await navigateToWeek(page, weekStart);
+        await findAndBookClasses(page, base, dryRun, results);
+
+        // Advance to next Monday
+        weekStart = new Date(weekStart);
+        weekStart.setDate(weekStart.getDate() + 7);
+        await sleep(1000);
+    }
+
+    log.info(`Finished scanning ${weekNumber} week(s)`);
 
 } catch (err) {
     log.exception(err, 'Actor failed');
@@ -132,6 +161,36 @@ log.info('Done', { totalBooked: results.filter((r) => r.booked).length, totalFou
 await Actor.exit();
 
 // ---------------------------------------------------------------------------
+
+async function navigateToWeek(page, monday) {
+    const d = monday.getDate();
+    const m = monday.getMonth() + 1;
+    const y = monday.getFullYear();
+
+    // iSportSystem loads schedule via jQuery AJAX into the tab panel.
+    // Trigger it directly via the same endpoint the tab uses.
+    await page.evaluate(({ day, month, year }) => {
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('AJAX timeout')), 10000);
+            $.ajax({
+                url: 'ajax/ajax.schema.php',
+                data: { day, month, year, id_sport: 5, event: 'pageLoad', tab_type: 'activity', timetableWidth: 970, schema_fixed_date: '' },
+                success(data) {
+                    clearTimeout(timeout);
+                    const panel = document.querySelector('.ui-tabs-panel:not([aria-hidden="true"]), #ui-id-2');
+                    if (panel) panel.innerHTML = data;
+                    resolve();
+                },
+                error(xhr) {
+                    clearTimeout(timeout);
+                    reject(new Error(`AJAX error: ${xhr.status}`));
+                },
+            });
+        });
+    }, { day: d, month: m, year: y });
+
+    await sleep(800);
+}
 
 async function injectCookies(browserContext, rawCookies, base) {
     const url = new URL(base);
@@ -182,11 +241,6 @@ async function findAndBookClasses(page, base, dry, results) {
     const slots = await page.$$('a.slot:not(.fullyBooked):not(.waitingOnly)');
     log.info(`Found ${slots.length} bookable slot(s) on current week view`);
 
-    // Minimum date: today + minDaysAhead (safety guard — never book something happening too soon)
-    const minDate = new Date();
-    minDate.setDate(minDate.getDate() + minDaysAhead);
-    minDate.setHours(0, 0, 0, 0);
-
     for (const slot of slots) {
         const timeText = await slot.$eval('.time', (el) => el.textContent.trim()).catch(() => '');
         const rel = await slot.getAttribute('rel') ?? '';
@@ -222,9 +276,9 @@ async function findAndBookClasses(page, base, dry, results) {
 
         if (!isTargetClass(dayOfWeek, startTime, name, instructor)) continue;
 
-        // Safety: never book slots happening within minDaysAhead days
-        if (slotDate && slotDate < minDate) {
-            log.info(`Skipping slot — within ${minDaysAhead}-day safety window`, { day: dayOfWeek, time: startTime, slotDate: slotDate.toISOString().slice(0, 10) });
+        // Only book slots within the configured date range
+        if (slotDate && (slotDate < rangeStart || slotDate > rangeEnd)) {
+            log.debug('Slot outside booking range — skipping', { day: dayOfWeek, time: startTime, slotDate: slotDate.toISOString().slice(0, 10) });
             continue;
         }
         log.info('Found target slot!', { day: dayOfWeek, time: startTime, name, instructor });

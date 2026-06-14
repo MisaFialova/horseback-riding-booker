@@ -43,19 +43,28 @@
             "default": [],
             "items": { "type": "string" }
         },
+        "bookFromDate": {
+            "title": "Book from date",
+            "type": "string",
+            "description": "Only book classes on or after this date. Format: YYYY-MM-DD. Example: 2026-09-01 for the start of the academic year.",
+            "editor": "datepicker",
+            "default": "2026-09-01",
+            "prefill": "2026-09-01"
+        },
+        "bookUntilDate": {
+            "title": "Book until date",
+            "type": "string",
+            "description": "Only book classes on or before this date. Format: YYYY-MM-DD. Example: 2027-06-30 for the end of the academic year.",
+            "editor": "datepicker",
+            "default": "2027-06-30",
+            "prefill": "2027-06-30"
+        },
         "bookingUrl": {
             "title": "Booking URL",
             "type": "string",
             "description": "Base URL of the booking system.",
             "editor": "textfield",
             "default": "https://jezdeckyklub-elite.isportsystem.cz"
-        },
-        "minDaysAhead": {
-            "title": "Minimum days ahead",
-            "type": "integer",
-            "description": "Never book a class starting sooner than this many days from today. Protects against accidentally booking something this week.",
-            "default": 3,
-            "minimum": 0
         },
         "dryRun": {
             "title": "Dry run (no actual booking)",
@@ -64,5 +73,5 @@
             "default": false
         }
     },
-    "required": ["cookies", "targetDays", "targetTimes"]
+    "required": ["cookies", "targetDays", "targetTimes", "bookFromDate", "bookUntilDate"]
 }
