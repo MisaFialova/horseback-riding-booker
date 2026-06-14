@@ -291,15 +291,15 @@ async function findAndBookClasses(page, base, dry, results, exportAll = false) {
             continue;
         }
 
-        // Export all classes to dataset if requested
+        if (!isTargetClass(dayOfWeek, startTime, name, instructor)) continue;
+
+        // Export matching slots to dataset if requested (all availability statuses)
         if (exportAll) {
             await Actor.pushData({ date, day: dayOfWeek, time: startTime, name, instructor, availability });
         }
 
         // Skip non-bookable slots for the booking logic
         if (availability !== 'available') continue;
-
-        if (!isTargetClass(dayOfWeek, startTime, name, instructor)) continue;
         log.info('Found target slot!', { day: dayOfWeek, time: startTime, name, instructor });
 
         if (dry) {
